@@ -1,0 +1,202 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <string>
+#include <vector>
+#include <thread>
+#include <random>
+#include <mutex>
+#include <chrono>
+
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#define NK_GLFW_GL3_IMPLEMENTATION
+#include "nuklear.h"
+#include "nuklear_glfw_gl3.h"
+
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 800
+
+#define MAX_VERTEX_BUFFER 512 * 1024
+#define MAX_ELEMENT_BUFFER 128 * 1024
+
+#include "algo.h"
+
+using namespace std;
+
+static void error_callback(int e, const char *d){
+  fprintf(stderr, "Error %d: %s\n", e, d);
+}
+
+static GLFWwindow *win;
+int width = 0, height = 0;
+struct nk_context *ctx;
+
+auto rng = default_random_engine {};
+vector<thread*> threads;
+char* windowname;
+int elements = 200;
+int delay = 100;
+vector<int> target;
+bool running = false;
+vector<const char*> algo_vec;
+int algo_current = 0;
+
+nk_color color_red = nk_rgba(255, 0, 0, 128);
+nk_color color_green = nk_rgba(0, 255, 0, 128);
+nk_color color_blue = nk_rgba(0, 0, 255, 128);
+nk_color color_default = color_green;
+
+bool continue_processing(mutex* m, int dms = 1){
+    this_thread::sleep_for(chrono::milliseconds(1));
+    if(m->try_lock() || !running){
+      m->unlock();
+      return false;
+    }
+    return true;
+}
+
+mutex fill_targets_mutex;
+void fill_targets(){
+  fill_targets_mutex.lock();
+
+  // clear
+  target.erase(target.begin(), target.end());
+
+  // fill
+  for(int i = 1; i <= elements; i++){
+    target.push_back(i);
+    
+    if(!continue_processing(&fill_targets_mutex)) return;
+  }
+
+  // shuffle
+  for(int i = elements-1; i > 0; i--){
+    int irand = rng() % (i+1);
+    swap(target[irand], target[i]);
+    if(!continue_processing(&fill_targets_mutex)) return;
+  }
+
+  // sort
+  algo::run(std::string(algo_vec[algo_current]));
+
+  running = false;
+  fill_targets_mutex.unlock();
+}
+
+void render(){
+  glfwSetErrorCallback(error_callback);
+  if(!glfwInit()){
+    fprintf(stderr, "[GFLW] failed to init!\n");
+    exit(1);
+  }
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+  win = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowname, NULL, NULL);
+  glfwMakeContextCurrent(win);
+  glfwGetWindowSize(win, &width, &height);
+
+  glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+  glewExperimental = 1;
+  if(glewInit() != GLEW_OK){
+    fprintf(stderr, "Failed to setup GLEW\n");
+    exit(1);
+  }
+
+  ctx = nk_glfw3_init(win, NK_GLFW3_INSTALL_CALLBACKS);
+  {
+    struct nk_font_atlas *atlas;
+    nk_glfw3_font_stash_begin(&atlas);
+    nk_glfw3_font_stash_end();
+  }
+  while(!glfwWindowShouldClose(win)){
+    glfwPollEvents();
+    nk_glfw3_new_frame();
+
+    int width_border = 1;
+    int width_settings = 200;
+    int width_chart = width-width_settings-width_border*2;
+
+    if(nk_begin(ctx, "Settings", nk_rect(0, 0, width_settings, height), NK_WINDOW_TITLE|NK_WINDOW_BORDER)){
+      nk_layout_row_dynamic(ctx, 25, 1);
+      if(nk_button_label(ctx, running ? "Cancel" : "Start")){
+        running = !running;
+        threads.push_back(new thread(fill_targets));
+      }
+
+      nk_layout_row_dynamic(ctx, 25, 1);
+      nk_combo(ctx, &algo_vec[0], NK_LEN(&algo_vec[0]), algo_current, 25, nk_vec2(200, 200));
+
+      nk_layout_row_dynamic(ctx, 25, 1);
+      nk_property_int(ctx, "Elements:", 0, &elements, 4096, 100, 2);
+
+      nk_layout_row_dynamic(ctx, 25, 1);
+      nk_property_int(ctx, "Delay (µs):", 0, &delay, 1000, 10, 1);
+    }
+    nk_end(ctx);
+
+    if(nk_begin(ctx, "Chart", nk_rect(width_settings+width_border*2, 0, width_chart, height), NK_WINDOW_TITLE|NK_WINDOW_BORDER|NK_WINDOW_ROM)){
+      nk_layout_row_static(ctx, height-55, width_chart-30, 1);
+      nk_chart_begin_colored(ctx, NK_CHART_COLUMN, color_green, color_red, target.size(), 0, target.size());
+      for(int val : target){
+        nk_chart_push(ctx, val);
+      }
+      nk_chart_end(ctx);
+    }
+    nk_end(ctx);
+
+    glfwGetWindowSize(win, &width, &height);
+    glViewport(0, 0, width, height);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0, 0, 0, 0);
+    nk_glfw3_render(NK_ANTI_ALIASING_OFF, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
+    glfwSwapBuffers(win);
+  }
+
+  nk_glfw3_shutdown();
+  glfwTerminate();
+}
+
+int main(int argc, char** argv){
+  algo::init();
+
+  for(pair<string, algo::IAlgo*> e : algo::algos){
+    char* copy = strdup(e.first.c_str());
+    algo_vec.push_back(copy);
+  }
+
+  windowname = argv[0];
+
+  threads.push_back(new thread(render));
+
+  while(!threads.empty()){
+    thread* t = threads.front();
+    threads.erase(threads.begin());
+    threads.shrink_to_fit();
+    if(t->joinable()){
+      t->join();
+    }
+    delete t;
+  }
+
+  for(const char* e : algo_vec){
+    free(const_cast<char*>(e));
+  }
+
+  algo::deinit();
+
+  return 0;
+}
+
