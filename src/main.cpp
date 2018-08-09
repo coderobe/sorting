@@ -137,7 +137,7 @@ void render(){
       }
 
       nk_layout_row_dynamic(ctx, 25, 1);
-      nk_combo(ctx, &algo_vec[0], NK_LEN(&algo_vec[0]), algo_current, 25, nk_vec2(200, 200));
+      algo_current = nk_combo(ctx, &algo_vec[0], algo_vec.size(), algo_current, 25, nk_vec2(200, 200));
 
       nk_layout_row_dynamic(ctx, 25, 1);
       nk_property_int(ctx, "Elements:", 0, &elements, 4096, 100, 2);
@@ -174,6 +174,7 @@ int main(int argc, char** argv){
 
   for(pair<string, algo::IAlgo*> e : algo::algos){
     char* copy = strdup(e.first.c_str());
+    printf("Found algo %s\n", copy);
     algo_vec.push_back(copy);
   }
 
