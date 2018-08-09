@@ -69,6 +69,27 @@ namespace algo {
     }
   };
 
+  class SelectionSort : public IAlgo {
+  public:
+    void run(){
+      size_t size = target.size();
+      for(size_t current = 0; current < size; current++){
+        size_t minimum = current;
+        for(size_t candidate = current+1; candidate < size; candidate++){
+          if(target[candidate] < target[minimum]){
+            minimum = candidate;
+          }
+
+          this_thread::sleep_for(chrono::microseconds(delay));
+          if(!running) return;
+        }
+        if(minimum != current){
+          swap(target[current], target[minimum]);
+        }
+      }
+    }
+  };
+
   // Initialization stuff
   map<string, IAlgo*> algos;
   void reg(string name, IAlgo* func){
@@ -77,6 +98,7 @@ namespace algo {
   void init(){
     reg("Bubble Sort", new BubbleSort());
     reg("Cocktail Shaker Sort", new CocktailShakerSort());
+    reg("Selection Sort", new SelectionSort());
   }
   void deinit(){
     for(pair<string, IAlgo*> a : algos)
