@@ -20,44 +20,34 @@ namespace algo {
 
   template <typename T>
   struct TraceableAtom {
-    T _a;
-    mutable mutex mx;
-
+    atomic<T> _a;
+    
     operator T() {
-      lock_guard<mutex> lock(mx);
-      return _a;
+      return _a.load();
     }
 
-    TraceableAtom() : _a() {
+    TraceableAtom() {
     }
 
     TraceableAtom(const atomic<T>& a) {
-      _a = a.load();      
+      _a.store(a.load());      
     }
 
     TraceableAtom(T& a) {
-      _a = a;      
+      _a.store(a);      
     }
 
     TraceableAtom(const TraceableAtom& other) {
-      lock_guard<mutex> lock(other.mx);
-      _a = other._a;
+      _a.store(other._a);
     }
 
     TraceableAtom& operator=(const TraceableAtom& other){
-      T value;
-      {
-        lock_guard<mutex> lock(other.mx);
-        value = other._a;
-      }
-      lock_guard<mutex> lock(mx);
-      _a = value;
+      _a.store(other._a.load());
       return *this;
     }
 
     TraceableAtom& operator=(T& other){
-      lock_guard<mutex> lock(mx);
-      _a = other;
+      _a.store(other._a.load());
       return *this;
     }
   };
