@@ -11,14 +11,14 @@ add_project_arguments(
 
 if get_option('buildtype').startswith('debug')
   add_project_arguments(
-    '-Og',
+    '-O0',
     '-g',
-    '-fsanitize=address',
+#    '-fsanitize=address',
     '-fno-omit-frame-pointer',
     language: 'cpp',
   )
   add_project_link_arguments(
-    '-fsanitize=address',
+#    '-fsanitize=address',
     language: 'cpp',
   )
 else
