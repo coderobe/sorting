@@ -4,6 +4,8 @@
 #include <map>
 #include <thread>
 #include <chrono>
+#include <cstdlib>
+#include <ctime>
 
 #include "algo.h"
 
@@ -90,6 +92,28 @@ namespace algo {
     }
   };
 
+  class MonkeySort : public IAlgo {
+  public:
+    bool isSorted() {
+      size_t size = target.size();
+      for (size_t i = 0; i < size-1; i++) {
+        if (target[i] > target[i+1]) return false;
+      }
+      return true;
+    }
+    void run(){
+      size_t size = target.size();
+      std::srand(std::time(nullptr));
+      while(!isSorted()) {
+        int idx1 = rand() % size;
+        int idx2 = rand() % size;
+        swap(target[idx1], target[idx2]);
+        this_thread::sleep_for(chrono::microseconds(delay));
+        if(!running) return;
+      }
+    }
+  };
+
   // Initialization stuff
   map<string, IAlgo*> algos;
   void reg(string name, IAlgo* func){
@@ -99,6 +123,7 @@ namespace algo {
     reg("Bubble Sort", new BubbleSort());
     reg("Cocktail Shaker Sort", new CocktailShakerSort());
     reg("Selection Sort", new SelectionSort());
+    reg("Monkey Sort", new MonkeySort());
   }
   void deinit(){
     for(pair<string, IAlgo*> a : algos)
