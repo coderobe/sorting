@@ -50,61 +50,50 @@ vector<algo::TraceableAtom<int>> target;
 bool running = false;
 vector<const char*> algo_vec;
 int algo_current = 0;
+mutex vector_busy_mutex;
 
 nk_color color_red = nk_rgba(255, 0, 0, 128);
 nk_color color_green = nk_rgba(0, 255, 0, 128);
 nk_color color_blue = nk_rgba(0, 0, 255, 128);
 nk_color color_default = color_green;
 
-bool continue_processing(mutex* m, int dms = 1){
-    this_thread::sleep_for(chrono::microseconds(dms));
-    if(m->try_lock() || !running){
-      m->unlock();
-      return false;
-    }
-    return true;
-}
-
-mutex fill_targets_mutex;
 void fill_targets(){
-  fill_targets_mutex.lock();
-
-  // clear
-  printf("Clearing results\n");
-  target.erase(target.begin(), target.end());
-
-  // fill
-  printf("Seeding next run\n");
-  for(int i = 1; i <= elements; i++){
-    //atomic<int> a(i);
-    target.push_back(i);
-    
-    if(!continue_processing(&fill_targets_mutex, delay/100)) return;
-  }
-
-  // shuffle
-  printf("Shuffling\n");
-  srand(time(nullptr));
-  for(int i = elements-1; i > 0; i--){
-    int irand = rng() % (i+1);
-    algo::swap(target[irand], target[i]);
-    if(!continue_processing(&fill_targets_mutex, delay*10)) return; 
-  }
-
-  // sort
-  printf("Running\n");
   try{
+    // clear
+    printf("Clearing results\n");
+    target.erase(target.begin(), target.end());
+
+    // fill
+    printf("Seeding next run\n");
+    for(int i = 1; i <= elements; i++){
+      lock_guard<mutex> lock(vector_busy_mutex);
+
+      target.push_back(i);
+
+      if(!running) return;
+    }
+
+    // shuffle
+    printf("Shuffling\n");
+    srand(time(nullptr));
+    for(int i = elements-1; i > 0; i--){
+      int irand = rng() % (i+1);
+      algo::swap(target[irand], target[i]);
+      if(!running) return;
+    }
+
+    // sort
+    printf("Running\n");
     chrono::high_resolution_clock::time_point time_start = chrono::high_resolution_clock::now();
     algo::run(std::string(algo_vec[algo_current]));
     chrono::high_resolution_clock::time_point time_end = chrono::high_resolution_clock::now();
     size_t time_duration = chrono::duration_cast<chrono::microseconds>(time_end - time_start).count();
     printf("Took %ldµs\n", time_duration);
-  }catch(algo::InterruptedException &e) {
+  }catch(algo::InterruptedException& e) {
     printf("Interrupted\n");
   }
 
   running = false;
-  fill_targets_mutex.unlock();
 }
 
 void render(){
@@ -147,7 +136,8 @@ void render(){
       nk_layout_row_dynamic(ctx, 25, 1);
       if(nk_button_label(ctx, running ? "Cancel" : "Start")){
         running = !running;
-        threads.push_back(new thread(fill_targets));
+        if(running)
+          threads.push_back(new thread(fill_targets));
       }
 
       nk_layout_row_dynamic(ctx, 25, 1);
@@ -164,8 +154,11 @@ void render(){
     if(nk_begin(ctx, "Chart", nk_rect(width_settings+width_border*2, 0, width_chart, height), NK_WINDOW_TITLE|NK_WINDOW_BORDER|NK_WINDOW_ROM)){
       nk_layout_row_static(ctx, height-55, width_chart-30, 1);
       nk_chart_begin_colored(ctx, NK_CHART_COLUMN, color_green, color_red, target.size(), 0, target.size());
-      for(int val : target){
-        nk_chart_push(ctx, val);
+      {
+        lock_guard<mutex> lock(vector_busy_mutex);
+        for(int val : target){
+          nk_chart_push(ctx, val);
+        }
       }
       nk_chart_end(ctx);
     }

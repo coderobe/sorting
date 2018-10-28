@@ -98,8 +98,6 @@ namespace algo {
         int idx1 = rand() % size;
         int idx2 = rand() % size;
         swap(target[idx1], target[idx2]);
-        this_thread::sleep_for(chrono::microseconds(delay));
-        if(!running) return;
       }
     }
   };
