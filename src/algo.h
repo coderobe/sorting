@@ -47,7 +47,7 @@ namespace algo {
     }
 
     TraceableAtom& operator=(T& other){
-      _a.store(other._a.load());
+      _a.store(other);
       return *this;
     }
   };
