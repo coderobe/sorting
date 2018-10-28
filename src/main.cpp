@@ -33,10 +33,6 @@
 
 using namespace std;
 
-static void error_callback(int e, const char *d){
-  fprintf(stderr, "Error %d: %s\n", e, d);
-}
-
 static GLFWwindow *win;
 int width = 0, height = 0;
 struct nk_context *ctx;
@@ -97,9 +93,12 @@ void fill_targets(){
 }
 
 void render(){
-  glfwSetErrorCallback(error_callback);
+  glfwSetErrorCallback([](int e, const char *d){
+    fprintf(stderr, "[GLFW] Error %d: %s\n", e, d);
+  });
+
   if(!glfwInit()){
-    fprintf(stderr, "[GFLW] failed to init!\n");
+    fprintf(stderr, "[GLFW] failed to init!\n");
     exit(1);
   }
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
