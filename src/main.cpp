@@ -194,7 +194,7 @@ int main(int argc, char** argv){
 
   windowname = argv[0];
 
-  threads.push_back(new thread(render));
+  render();
 
   while(!threads.empty()){
     thread* t = threads.front();
