@@ -82,7 +82,7 @@ namespace algo {
   };
 
   class MonkeySort : public IAlgo {
-  public:
+  private:
     bool isSorted() {
       size_t size = target.size();
       for (size_t i = 0; i < size-1; i++) {
@@ -90,6 +90,7 @@ namespace algo {
       }
       return true;
     }
+  public:
     void run(){
       size_t size = target.size();
       std::srand(std::time(nullptr));
@@ -110,7 +111,7 @@ namespace algo {
     T temp = a;
     a = b;
     b = temp;
-    this_thread::sleep_for(chrono::milliseconds(delay));
+    this_thread::sleep_for(chrono::microseconds(delay));
     if(!running) throw InterruptedException();
   }
   void reg(string name, IAlgo* func){
@@ -127,7 +128,7 @@ namespace algo {
       delete a.second;
   }
   void run(string name){
-    printf("Running %s with a delay of %dms\n", name.c_str(), delay);
+    printf("Running %s with a delay of %dµs\n", name.c_str(), delay);
     algos[name]->run();
     printf("Done\n");
   }

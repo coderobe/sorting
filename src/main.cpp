@@ -45,7 +45,7 @@ auto rng = default_random_engine {};
 vector<thread*> threads;
 char* windowname;
 int elements = 200;
-int delay = 1;
+int delay = 500;
 vector<algo::TraceableAtom<int>> target;
 bool running = false;
 vector<const char*> algo_vec;
@@ -157,7 +157,7 @@ void render(){
       nk_property_int(ctx, "Elements:", 0, &elements, 4096, 100, 2);
 
       nk_layout_row_dynamic(ctx, 25, 1);
-      nk_property_int(ctx, "Swap Delay (ms):", 0, &delay, 1000, 1, 1);
+      nk_property_int(ctx, "Swap Delay (µs):", 0, &delay, 1000, 100, 1);
     }
     nk_end(ctx);
 
