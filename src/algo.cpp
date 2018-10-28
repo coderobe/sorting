@@ -6,12 +6,13 @@
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
 
 #include "algo.h"
 
 using namespace std;
 
-extern vector<int> target;
+extern vector<algo::TraceableAtom<int>> target;
 extern int delay;
 extern bool running;
 
@@ -27,9 +28,6 @@ namespace algo {
             swap(target[i-1], target[i]);
             swapped = true;
           }
-
-          this_thread::sleep_for(chrono::microseconds(delay));
-          if(!running) return;
         }
       }
     }
@@ -47,9 +45,6 @@ namespace algo {
               swap(target[i-1], target[i]);
               swapped = true;
             }
-
-            this_thread::sleep_for(chrono::microseconds(delay));
-            if(!running) return;
           }
         }
 
@@ -62,9 +57,6 @@ namespace algo {
               swap(target[i], target[i+1]);
               swapped = true;
             }
-
-            this_thread::sleep_for(chrono::microseconds(delay));
-            if(!running) return;
           }
         }
       }
@@ -81,9 +73,6 @@ namespace algo {
           if(target[candidate] < target[minimum]){
             minimum = candidate;
           }
-
-          this_thread::sleep_for(chrono::microseconds(delay));
-          if(!running) return;
         }
         if(minimum != current){
           swap(target[current], target[minimum]);
@@ -93,7 +82,7 @@ namespace algo {
   };
 
   class MonkeySort : public IAlgo {
-  public:
+  private:
     bool isSorted() {
       size_t size = target.size();
       for (size_t i = 0; i < size-1; i++) {
@@ -101,6 +90,7 @@ namespace algo {
       }
       return true;
     }
+  public:
     void run(){
       size_t size = target.size();
       std::srand(std::time(nullptr));
@@ -114,8 +104,16 @@ namespace algo {
     }
   };
 
-  // Initialization stuff
+  // Utility stuff
   map<string, IAlgo*> algos;
+  template <typename T>
+  void swap(T &a, T &b){
+    T temp = a;
+    a = b;
+    b = temp;
+    this_thread::sleep_for(chrono::microseconds(delay));
+    if(!running) throw InterruptedException();
+  }
   void reg(string name, IAlgo* func){
     algos[name] = func;
   }

@@ -45,8 +45,8 @@ auto rng = default_random_engine {};
 vector<thread*> threads;
 char* windowname;
 int elements = 200;
-int delay = 100;
-vector<int> target;
+int delay = 500;
+vector<algo::TraceableAtom<int>> target;
 bool running = false;
 vector<const char*> algo_vec;
 int algo_current = 0;
@@ -57,7 +57,7 @@ nk_color color_blue = nk_rgba(0, 0, 255, 128);
 nk_color color_default = color_green;
 
 bool continue_processing(mutex* m, int dms = 1){
-    this_thread::sleep_for(chrono::milliseconds(1));
+    this_thread::sleep_for(chrono::microseconds(dms));
     if(m->try_lock() || !running){
       m->unlock();
       return false;
@@ -70,24 +70,38 @@ void fill_targets(){
   fill_targets_mutex.lock();
 
   // clear
+  printf("Clearing results\n");
   target.erase(target.begin(), target.end());
 
   // fill
+  printf("Seeding next run\n");
   for(int i = 1; i <= elements; i++){
+    //atomic<int> a(i);
     target.push_back(i);
     
-    if(!continue_processing(&fill_targets_mutex)) return;
+    if(!continue_processing(&fill_targets_mutex, delay/100)) return;
   }
 
   // shuffle
+  printf("Shuffling\n");
+  srand(time(nullptr));
   for(int i = elements-1; i > 0; i--){
     int irand = rng() % (i+1);
-    swap(target[irand], target[i]);
-    if(!continue_processing(&fill_targets_mutex)) return;
+    algo::swap(target[irand], target[i]);
+    if(!continue_processing(&fill_targets_mutex, delay*10)) return; 
   }
 
   // sort
-  algo::run(std::string(algo_vec[algo_current]));
+  printf("Running\n");
+  try{
+    chrono::high_resolution_clock::time_point time_start = chrono::high_resolution_clock::now();
+    algo::run(std::string(algo_vec[algo_current]));
+    chrono::high_resolution_clock::time_point time_end = chrono::high_resolution_clock::now();
+    size_t time_duration = chrono::duration_cast<chrono::microseconds>(time_end - time_start).count();
+    printf("Took %ldµs\n", time_duration);
+  }catch(algo::InterruptedException &e) {
+    printf("Interrupted\n");
+  }
 
   running = false;
   fill_targets_mutex.unlock();
@@ -143,7 +157,7 @@ void render(){
       nk_property_int(ctx, "Elements:", 0, &elements, 4096, 100, 2);
 
       nk_layout_row_dynamic(ctx, 25, 1);
-      nk_property_int(ctx, "Delay (µs):", 0, &delay, 1000, 10, 1);
+      nk_property_int(ctx, "Swap Delay (µs):", 0, &delay, 1000, 100, 1);
     }
     nk_end(ctx);
 
