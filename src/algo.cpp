@@ -13,7 +13,6 @@
 using namespace std;
 
 extern vector<algo::TraceableAtom<int>> target;
-extern int delay;
 extern bool running;
 
 namespace algo {
@@ -104,12 +103,10 @@ namespace algo {
 
   // Utility stuff
   map<string, IAlgo*> algos;
-  template <typename T>
-  void swap(T &a, T &b){
+  template <typename T> void swap(T &a, T &b){
     T temp = a;
     a = b;
     b = temp;
-    this_thread::sleep_for(chrono::microseconds(delay));
     if(!running) throw InterruptedException();
   }
   void reg(string name, IAlgo* func){
@@ -126,7 +123,7 @@ namespace algo {
       delete a.second;
   }
   void run(string name){
-    printf("Running %s with a delay of %dµs\n", name.c_str(), delay);
+    printf("Running %s\n", name.c_str());
     algos[name]->run();
     printf("Done\n");
   }

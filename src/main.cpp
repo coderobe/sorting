@@ -7,6 +7,7 @@
 #include <random>
 #include <mutex>
 #include <chrono>
+#include <sstream>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -41,7 +42,12 @@ auto rng = default_random_engine {};
 vector<thread*> threads;
 char* windowname;
 int elements = 200;
-int delay = 500;
+int read_delay = 100;
+int write_delay = 500;
+string last_action = "nothing";
+string last_time = "0";
+atomic<size_t> read_count = 0;
+atomic<size_t> write_count = 0;
 vector<algo::TraceableAtom<int>> target;
 bool running = false;
 vector<const char*> algo_vec;
@@ -56,7 +62,7 @@ nk_color color_default = color_green;
 void fill_targets(){
   try{
     // clear
-    printf("Clearing results\n");
+    printf("Clearing vector\n");
     target.erase(target.begin(), target.end());
 
     // fill
@@ -65,6 +71,18 @@ void fill_targets(){
       lock_guard<mutex> lock(vector_busy_mutex);
 
       target.push_back(i);
+      target.back().cb_write.push_back([](algo::TraceableAtom<int>& atom){
+        last_action = "write";
+        write_count++;
+        this_thread::sleep_for(chrono::microseconds(read_delay));
+        if(!running) throw algo::InterruptedException();
+      });
+      target.back().cb_read.push_back([](algo::TraceableAtom<int>& atom){
+        last_action = "read";
+        read_count++;
+        this_thread::sleep_for(chrono::microseconds(write_delay));
+        if(!running) throw algo::InterruptedException();
+      });
 
       if(!running) return;
     }
@@ -78,6 +96,10 @@ void fill_targets(){
       if(!running) return;
     }
 
+    printf("Resetting results\n");
+    write_count = 0;
+    read_count = 0;
+
     // sort
     printf("Running\n");
     chrono::high_resolution_clock::time_point time_start = chrono::high_resolution_clock::now();
@@ -85,6 +107,7 @@ void fill_targets(){
     chrono::high_resolution_clock::time_point time_end = chrono::high_resolution_clock::now();
     size_t time_duration = chrono::duration_cast<chrono::microseconds>(time_end - time_start).count();
     printf("Took %ldµs\n", time_duration);
+    last_time = to_string(time_duration);
   }catch(algo::InterruptedException& e) {
     printf("Interrupted\n");
   }
@@ -146,7 +169,22 @@ void render(){
       nk_property_int(ctx, "Elements:", 0, &elements, 4096, 100, 2);
 
       nk_layout_row_dynamic(ctx, 25, 1);
-      nk_property_int(ctx, "Swap Delay (µs):", 0, &delay, 1000, 100, 1);
+      nk_property_int(ctx, "Write Delay (µs):", 0, &write_delay, 1000, 100, 1);
+
+      nk_layout_row_dynamic(ctx, 25, 1);
+      nk_property_int(ctx, "Read Delay (µs):", 0, &read_delay, 1000, 100, 1);
+
+      nk_layout_row_dynamic(ctx, 25, 1);
+      nk_label(ctx, (string("Last action: ") + last_action).c_str(), NK_TEXT_LEFT);
+
+      nk_layout_row_dynamic(ctx, 25, 1);
+      nk_label(ctx, (string("Last time: ") + last_time + "µs").c_str(), NK_TEXT_LEFT);
+
+      nk_layout_row_dynamic(ctx, 25, 1);
+      nk_label(ctx, (string("Total writes: ") + to_string(write_count)).c_str(), NK_TEXT_LEFT);
+
+      nk_layout_row_dynamic(ctx, 25, 1);
+      nk_label(ctx, (string("Total reads: ") + to_string(read_count)).c_str(), NK_TEXT_LEFT);
     }
     nk_end(ctx);
 
@@ -155,8 +193,8 @@ void render(){
       nk_chart_begin_colored(ctx, NK_CHART_COLUMN, color_green, color_red, target.size(), 0, target.size());
       {
         lock_guard<mutex> lock(vector_busy_mutex);
-        for(int val : target){
-          nk_chart_push(ctx, val);
+        for(size_t i = 0; i < target.size(); i++){
+          nk_chart_push(ctx, target[i].without_cb());
         }
       }
       nk_chart_end(ctx);
