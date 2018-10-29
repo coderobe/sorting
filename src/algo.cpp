@@ -114,10 +114,8 @@ namespace algo {
         while(j > 0 && target[j-1] > val) {
           target[j] = target[j-1];
           j--;
-          this_thread::sleep_for(chrono::microseconds(delay));
         }
         target[j] = val;
-        if(!running) return;
       }      
     }
   };
