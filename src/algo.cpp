@@ -101,6 +101,22 @@ namespace algo {
     }
   };
 
+  class InsertionSort : public IAlgo {
+  public:
+    void run(){
+      size_t size = target.size();
+      for(size_t i = 1; i < size; i++) {
+        int val = target[i];
+        int j = i;
+        while(j > 0 && target[j-1] > val) {
+          target[j] = target[j-1];
+          j--;
+        }
+        target[j] = val;
+      }      
+    }
+  };
+
   // Utility stuff
   map<string, IAlgo*> algos;
   template <typename T> void swap(T &a, T &b){
@@ -117,6 +133,7 @@ namespace algo {
     reg("Cocktail Shaker Sort", new CocktailShakerSort());
     reg("Selection Sort", new SelectionSort());
     reg("Monkey Sort", new MonkeySort());
+    reg("Insertion Sort", new InsertionSort());
   }
   void deinit(){
     for(pair<string, IAlgo*> a : algos)

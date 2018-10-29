@@ -53,8 +53,7 @@ namespace algo {
     }
 
     TraceableAtom& operator=(T& other){
-      for(std::function<void(TraceableAtom&)>& fun : cb_write) fun(*this);
-      _a.store(other._a.load());
+      _a.store(other);
       return *this;
     }
   };
