@@ -4,11 +4,6 @@ project('sorting', 'cpp',
   ],
 )
 
-add_project_arguments(
-  '-Wno-sizeof-pointer-div',
-  language: 'cpp',
-)
-
 if get_option('buildtype').startswith('debug')
   add_project_arguments(
     '-Og',

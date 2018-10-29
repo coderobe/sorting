@@ -7,8 +7,7 @@
 #include <map>
 #include <atomic>
 #include <iostream>
-
-using namespace std;
+#include <functional>
 
 namespace algo {
   class InterruptedException : virtual public std::exception {};
@@ -18,18 +17,24 @@ namespace algo {
     virtual void run() = 0;
   };
 
-  template <typename T>
-  struct TraceableAtom {
-    atomic<T> _a;
+  template <typename T> struct TraceableAtom {
+    std::atomic<T> _a;
+    std::vector<std::function<void(TraceableAtom&)>> cb_read;
+    std::vector<std::function<void(TraceableAtom&)>> cb_write;
     
     operator T() {
+      for(std::function<void(TraceableAtom&)>& fun : cb_read) fun(*this);
+      return _a.load();
+    }
+
+    T without_cb() {
       return _a.load();
     }
 
     TraceableAtom() {
     }
 
-    TraceableAtom(const atomic<T>& a) {
+    TraceableAtom(const std::atomic<T>& a) {
       _a.store(a.load());      
     }
 
@@ -42,6 +47,7 @@ namespace algo {
     }
 
     TraceableAtom& operator=(const TraceableAtom& other){
+      for(std::function<void(TraceableAtom&)>& fun : cb_write) fun(*this);
       _a.store(other._a.load());
       return *this;
     }
@@ -52,13 +58,12 @@ namespace algo {
     }
   };
 
-  extern map<string, IAlgo*> algos;
-  void add(string name, IAlgo* func);
+  extern std::map<std::string, IAlgo*> algos;
+  void add(std::string name, IAlgo* func);
   void init();
   void deinit();
-  void run(string name);
-  template <typename T>
-  void swap(T &a, T &b);
+  void run(std::string name);
+  template <typename T> void swap(T &a, T &b);
 }
 
 #endif
