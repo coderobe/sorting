@@ -33,7 +33,6 @@
 #include "algo.h"
 
 #if defined(__APPLE__)
-    #include <unistd.h>             // Required for: usleep()
     #include <objc/message.h>       // Required for: objc_msgsend(), sel_registerName()
     #define GLFW_EXPOSE_NATIVE_NSGL
     #include <GLFW/glfw3native.h>   // Required for: glfwGetNSGLContext()
@@ -123,9 +122,6 @@ void fill_targets(){
 }
 
 void render(){
-  // macOS Mojave rerender fix
-  int windowNeedsUpdating = 2;
-
   glfwSetErrorCallback([](int e, const char *d){
     fprintf(stderr, "[GLFW] Error %d: %s\n", e, d);
   });
@@ -156,6 +152,13 @@ void render(){
     nk_glfw3_font_stash_begin(&atlas);
     nk_glfw3_font_stash_end();
   }
+
+#if __APPLE__
+  // Fix black screen on macOS Mojave, need to call some natives to force the window to update
+  glfwPollEvents();
+  objc_msgSend(glfwGetNSGLContext(win), sel_registerName("update"));
+#endif
+
   while(!glfwWindowShouldClose(win)){
     glfwPollEvents();
     nk_glfw3_new_frame();
@@ -217,15 +220,6 @@ void render(){
     glClearColor(0, 0, 0, 0);
     nk_glfw3_render(NK_ANTI_ALIASING_OFF, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
     glfwSwapBuffers(win);
-#if __APPLE__
-    // workaround for missing/erroneous initial rendering on macOS
-    if (windowNeedsUpdating) {
-        // Desugared version of Objective C: [glfwGetNSGLContext(window) update]
-        ((id (*)(id, SEL))objc_msgSend)(glfwGetNSGLContext(win),
-                                        sel_registerName("update"));
-        windowNeedsUpdating--;
-    }
-#endif
   }
 
   nk_glfw3_shutdown();
