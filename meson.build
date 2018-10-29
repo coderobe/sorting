@@ -53,6 +53,10 @@ dependencies = [
   dependency('glew'),
 ]
 
+if host_machine.system() == 'darwin'
+  dependencies += dependency('Foundation')
+endif
+
 exe = executable(
   'sorting',
   sources: sources,
