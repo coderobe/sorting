@@ -117,6 +117,32 @@ namespace algo {
     }
   };
 
+class CombSort : public IAlgo {
+  public:
+    void run(){
+      size_t gap = target.size();
+      float shrink = 1.3;
+      bool sorted = false;
+      while(!sorted) {
+        gap /= shrink;
+        if (gap <= 1) {
+          gap = 1;
+          sorted = true;
+        }
+
+        int i = 0;
+        while(i+gap < target.size()) {
+          if (target[i] > target[i+gap]) {
+            swap(target[i], target[i+gap]);
+            sorted = false;
+          }
+          i++;
+        }
+      }
+    }
+
+  };
+
   // Utility stuff
   map<string, IAlgo*> algos;
   template <typename T> void swap(T &a, T &b){
@@ -134,6 +160,7 @@ namespace algo {
     reg("Selection Sort", new SelectionSort());
     reg("Monkey Sort", new MonkeySort());
     reg("Insertion Sort", new InsertionSort());
+    reg("Comb Sort", new CombSort());
   }
   void deinit(){
     for(pair<string, IAlgo*> a : algos)
@@ -145,3 +172,4 @@ namespace algo {
     printf("Done\n");
   }
 }
+
