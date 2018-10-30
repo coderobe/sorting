@@ -154,26 +154,7 @@ namespace algo {
       }
     }
   };
-  class GnomeSort : public IAlgo{
-  public:
-    void run(){
-      size_t i = 0;
-      size_t size = target.size();
-      while(i < size){
-        if (i == 0){
-          i++;
-        }
-        if (target[i] >= target[i-1]){
-          i++;
-        }
-        else{
-          swap(target[i], target[i -1]);
-          i--;
-        }
-      }
-      return;
-    }
-  };
+
   // Utility stuff
   map<string, IAlgo*> algos;
   template <typename T> void swap(T &a, T &b){
@@ -192,7 +173,6 @@ namespace algo {
     reg("Monkey Sort", new MonkeySort());
     reg("Insertion Sort", new InsertionSort());
     reg("Heap Sort", new HeapSort());
-    reg("Gnome Sort", new GnomeSort());
   }
   void deinit(){
     for(pair<string, IAlgo*> a : algos)
