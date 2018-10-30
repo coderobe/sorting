@@ -116,6 +116,44 @@ namespace algo {
       }      
     }
   };
+  class HeapSort : public IAlgo {
+  private:
+    void siftDown(size_t start, size_t end){
+      size_t root = start;
+      while (2*root+1 <= end){
+        size_t child = 2*root+1;
+        size_t toswap = root;
+        if (target[toswap] < target[child]){
+          toswap = child;
+        }
+        if (child+1 <= end && target[toswap] < target[child+1]){
+          toswap = child + 1;
+        }
+        if (toswap == root){
+          return;
+        }
+        else {
+          swap(target[root], target[toswap]);
+          root = toswap;
+        }
+      }
+    };
+  public:
+    void run(){
+      size_t size = target.size();
+      size_t start = (size-2)/2;
+      while (start > 0) {
+        siftDown(start, size-1);
+        start--;
+      }
+      size_t end = size - 1;
+      while (end > 0){
+        swap(target[end], target[0]);
+        end--;
+        siftDown(0,end);
+      }
+    }
+  };
 
 class CombSort : public IAlgo {
   public:
@@ -161,6 +199,7 @@ class CombSort : public IAlgo {
     reg("Monkey Sort", new MonkeySort());
     reg("Insertion Sort", new InsertionSort());
     reg("Comb Sort", new CombSort());
+    reg("Heap Sort", new HeapSort());
   }
   void deinit(){
     for(pair<string, IAlgo*> a : algos)

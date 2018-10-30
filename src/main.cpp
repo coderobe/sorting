@@ -32,6 +32,12 @@
 
 #include "algo.h"
 
+#if defined(__APPLE__)
+  #include <objc/message.h>       // Required for: objc_msgsend(), sel_registerName()
+  #define GLFW_EXPOSE_NATIVE_NSGL
+  #include <GLFW/glfw3native.h>   // Required for: glfwGetNSGLContext()
+#endif
+
 using namespace std;
 
 static GLFWwindow *win;
@@ -146,6 +152,13 @@ void render(){
     nk_glfw3_font_stash_begin(&atlas);
     nk_glfw3_font_stash_end();
   }
+
+  #if __APPLE__
+    // Fix black screen on macOS Mojave, need to call some natives to force the window to update
+    glfwPollEvents();
+    objc_msgSend(glfwGetNSGLContext(win), sel_registerName("update"));
+  #endif
+
   while(!glfwWindowShouldClose(win)){
     glfwPollEvents();
     nk_glfw3_new_frame();
