@@ -113,7 +113,7 @@ namespace algo {
           j--;
         }
         target[j] = val;
-      }      
+      }
     }
   };
   class HeapSort : public IAlgo {
@@ -181,6 +181,26 @@ class CombSort : public IAlgo {
 
   };
 
+  class GnomeSort : public IAlgo{
+  public:
+    void run(){
+      size_t i = 0;
+      size_t size = target.size();
+      while(i < size){
+        if (i == 0){
+          i++;
+        }
+        if (target[i] >= target[i-1]){
+          i++;
+        }
+        else{
+          swap(target[i], target[i -1]);
+          i--;
+        }
+      }
+      return;
+    }
+  };
   // Utility stuff
   map<string, IAlgo*> algos;
   template <typename T> void swap(T &a, T &b){
@@ -200,6 +220,7 @@ class CombSort : public IAlgo {
     reg("Insertion Sort", new InsertionSort());
     reg("Comb Sort", new CombSort());
     reg("Heap Sort", new HeapSort());
+    reg("Gnome Sort", new GnomeSort());
   }
   void deinit(){
     for(pair<string, IAlgo*> a : algos)
@@ -211,4 +232,3 @@ class CombSort : public IAlgo {
     printf("Done\n");
   }
 }
-
