@@ -69,7 +69,7 @@ void fill_targets(){
   try{
     // clear
     printf("Clearing vector\n");
-    target.erase(target.begin(), target.end());
+    target.clear();
 
     // fill
     printf("Seeding next run\n");
@@ -80,13 +80,13 @@ void fill_targets(){
       target.back().cb_write.push_back([](algo::TraceableAtom<int>& atom){
         last_action = "write";
         write_count++;
-        this_thread::sleep_for(chrono::microseconds(read_delay));
+        this_thread::sleep_for(chrono::microseconds(write_delay));
         if(!running) throw algo::InterruptedException();
       });
       target.back().cb_read.push_back([](algo::TraceableAtom<int>& atom){
         last_action = "read";
         read_count++;
-        this_thread::sleep_for(chrono::microseconds(write_delay));
+        this_thread::sleep_for(chrono::microseconds(read_delay));
         if(!running) throw algo::InterruptedException();
       });
 

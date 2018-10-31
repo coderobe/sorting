@@ -43,6 +43,8 @@ namespace algo {
     }
 
     TraceableAtom(const TraceableAtom& other) {
+      cb_read = other.cb_read;
+      cb_write = other.cb_write;
       _a.store(other._a);
     }
 
