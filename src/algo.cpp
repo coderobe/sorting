@@ -119,7 +119,7 @@ namespace algo {
   class HeapSort : public IAlgo {
   private:
     void siftDown(size_t start, size_t end){
-      size_t root = start;
+      size_t& root = start;
       while (2*root+1 <= end){
         size_t child = 2*root+1;
         size_t toswap = root;
@@ -131,8 +131,7 @@ namespace algo {
         }
         if (toswap == root){
           return;
-        }
-        else {
+        } else {
           swap(target[root], target[toswap]);
           root = toswap;
         }
@@ -141,8 +140,8 @@ namespace algo {
   public:
     void run(){
       size_t size = target.size();
-      size_t start = (size-2)/2;
-      while (start > 0) {
+      ssize_t start = (size-2)/2;
+      while (start >= 0) {
         siftDown(start, size-1);
         start--;
       }
