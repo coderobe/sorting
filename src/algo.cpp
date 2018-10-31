@@ -113,7 +113,7 @@ namespace algo {
           j--;
         }
         target[j] = val;
-      }      
+      }
     }
   };
   class HeapSort : public IAlgo {
@@ -154,6 +154,33 @@ namespace algo {
       }
     }
   };
+
+class CombSort : public IAlgo {
+  public:
+    void run(){
+      size_t gap = target.size();
+      float shrink = 1.3;
+      bool sorted = false;
+      while(!sorted) {
+        gap /= shrink;
+        if (gap <= 1) {
+          gap = 1;
+          sorted = true;
+        }
+
+        int i = 0;
+        while(i+gap < target.size()) {
+          if (target[i] > target[i+gap]) {
+            swap(target[i], target[i+gap]);
+            sorted = false;
+          }
+          i++;
+        }
+      }
+    }
+
+  };
+
   class GnomeSort : public IAlgo{
   public:
     void run(){
@@ -191,6 +218,7 @@ namespace algo {
     reg("Selection Sort", new SelectionSort());
     reg("Monkey Sort", new MonkeySort());
     reg("Insertion Sort", new InsertionSort());
+    reg("Comb Sort", new CombSort());
     reg("Heap Sort", new HeapSort());
     reg("Gnome Sort", new GnomeSort());
   }
